@@ -71,16 +71,12 @@ impl Agent for GomokuDDQNAgent {
         let output = self.model.forward_t(&input, false).to_device(Device::Cpu);
 
         // filter-out illegal moves
-        let legal_moves = Tensor::from_slice(
-            &game
-                .board()
-                .legal_moves()
-                .iter()
-                .map(|m| *m as i64)
-                .collect::<Vec<_>>(),
-        );
-        let legal_q_values = output.index_select(1, &legal_moves);
-        let action = legal_q_values.argmax(1, false).int64_value(&[0]);
-        Ok(action as usize)
+        let legal_moves = game.board().legal_moves();
+        let legal_move_indices =
+            Tensor::from_slice(&legal_moves.iter().map(|m| *m as i64).collect::<Vec<_>>());
+        let legal_q_values = output.index_select(1, &legal_move_indices);
+        let index = legal_q_values.argmax(1, false).int64_value(&[0]);
+
+        Ok(legal_moves[index as usize])
     }
 }

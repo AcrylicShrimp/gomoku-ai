@@ -32,10 +32,10 @@ impl Default for TrainOptions {
     fn default() -> Self {
         Self {
             save_path: None,
-            replay_buffer_size: 1000000,
+            replay_buffer_size: 10000,
             batch_size: 32,
             iterations: 100,
-            training_steps: 100,
+            training_steps: 10,
             epsilon: 0.5,
             epsilon_decay: 0.99,
             epsilon_min: 0.01,
@@ -75,10 +75,14 @@ impl GomokuDDQNTrainer {
         let mut epsilon = train_options.epsilon;
         let mut replay_buffer = VecDeque::with_capacity(train_options.replay_buffer_size);
 
-        for _ in 0..epoches {
+        for epoch in 0..epoches {
+            println!("epoches: {}", epoch + 1);
+
             let mut iteration = 0;
 
             while iteration < train_options.iterations {
+                println!("iteration: {}", iteration + 1);
+
                 let (new_game, new_agent_turn, replay_step) =
                     sample_replay(game, agent_turn, agent, Opponent::Random, epsilon);
 
@@ -122,6 +126,8 @@ impl GomokuDDQNTrainer {
                 optimizer.step();
 
                 target.copy_weights_from(agent.model(), Some(train_options.tau));
+
+                println!("loss: {}", loss.double_value(&[]));
             }
 
             if let Some(save_path) = &train_options.save_path {
@@ -140,7 +146,7 @@ mod loss {
         agents::gomoku_ddqn::model::{encode_batched_board, Model},
         replay::ReplayStep,
     };
-    use tch::{nn::ModuleT, Kind, Tensor};
+    use tch::{nn::ModuleT, Device, Kind, Tensor};
 
     pub fn compute_loss(
         agent: &Model,
@@ -152,7 +158,11 @@ mod loss {
 
         let boards = Vec::from_iter(batch.iter().map(|step| &step.boards));
         let boards = encode_batched_board(&boards);
-        let q = agent.forward_t(&boards, false);
+        let q = agent.forward_t(&boards, false).to_device(Device::Cpu);
+
+        let actions = Vec::from_iter(batch.iter().map(|step| step.action as i64));
+        let actions = Tensor::from_slice(&actions);
+        let q = q.index_select(1, &actions);
 
         (td_target - q).square().mean(Kind::Float)
     }
@@ -173,10 +183,9 @@ mod loss {
                 .iter()
                 .map(|step| step.next_boards.as_ref().unwrap_or(&step.boards)),
         ));
-        let actions = agent.forward_t(&next_boards, false).argmax(1, false);
-        let target_q = target
-            .forward_t(&next_boards, false)
-            .index_select(1, &actions);
+        let actions = agent.forward_t(&next_boards, false).argmax(1, true);
+        let target_qs = target.forward_t(&next_boards, false);
+        let target_q = target_qs.gather(1, &actions, false).to_device(Device::Cpu);
 
         // flag for whether the game is done to mask out the future q values
         let is_done =

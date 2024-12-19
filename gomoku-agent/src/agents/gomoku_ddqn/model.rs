@@ -9,7 +9,7 @@ use gomoku_core::{
 use std::borrow::Borrow;
 use tch::{
     nn::{batch_norm2d, conv2d, linear, BatchNorm, Conv2D, ConvConfig, Linear, ModuleT, Path},
-    no_grad, Tensor,
+    no_grad, Device, Tensor,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -22,6 +22,7 @@ pub struct ModelConfig {
 
 #[derive(Debug)]
 pub struct Model {
+    device: Device,
     config: ModelConfig,
     match_channel_conv: Conv2D,
     match_channel_bn: BatchNorm,
@@ -35,7 +36,7 @@ impl Model {
         let vs = vs.borrow();
         let match_channel_conv = conv2d(
             vs,
-            4,
+            16,
             config.residual_block_channels as i64,
             3,
             ConvConfig {
@@ -70,6 +71,7 @@ impl Model {
         );
 
         Self {
+            device: vs.device(),
             config,
             match_channel_conv,
             match_channel_bn,
@@ -120,9 +122,10 @@ impl Model {
 impl ModuleT for Model {
     fn forward_t(&self, xs: &Tensor, train: bool) -> Tensor {
         let mut x = xs
+            .to_device(self.device)
             .view([
                 -1,
-                4,
+                16,
                 self.config.board_size as i64,
                 self.config.board_size as i64,
             ])

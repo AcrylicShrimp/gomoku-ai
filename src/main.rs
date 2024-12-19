@@ -9,7 +9,7 @@ const AGENT_PATH: &str = "agents/test";
 fn main() {
     let mut agent = GomokuDDQNProvider.create_agent();
 
-    if std::fs::exists(AGENT_PATH).unwrap() {
+    if std::fs::exists(format!("{AGENT_PATH}/agent.safetensors")).unwrap() {
         agent.load(AGENT_PATH).unwrap();
     }
 
