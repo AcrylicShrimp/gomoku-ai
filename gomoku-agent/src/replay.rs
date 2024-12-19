@@ -76,7 +76,7 @@ pub fn sample_replay(
                 boards,
                 next_boards: None,
                 game_result: result_after_agent.game_result,
-                reward: 1f32,
+                reward: 100f32,
             },
         );
     }
@@ -99,7 +99,7 @@ pub fn sample_replay(
                 boards,
                 next_boards: None,
                 game_result: result_after_opponent.game_result,
-                reward: -1f32,
+                reward: -100f32,
             },
         );
     }
@@ -173,14 +173,14 @@ impl Player for RandomPlayer {
 }
 
 fn compute_nonterminal_reward(result: &PlaceStoneResult) -> f32 {
-    // +0.001 for 3-5 consecutive stones (offensive)
+    // +1 for 3-5 consecutive stones (offensive)
     if let Some(n) = result.consecutive_stones.first().copied() {
         if (3..=5).contains(&n) {
-            return 0.001f32;
+            return 1f32;
         }
     }
 
-    // +0.001 for defensive move (blocking opponent's 4-5 consecutive stones)
+    // +1 for defensive move (blocking opponent's 4-5 consecutive stones)
     let mut virtual_board = result.board_was.clone();
     virtual_board.set_cell(result.index, result.turn_was.next().into());
 
@@ -188,7 +188,7 @@ fn compute_nonterminal_reward(result: &PlaceStoneResult) -> f32 {
         virtual_board.count_consecutive_cells(result.index, result.turn_was.next());
     if let Some(n) = opponent_consecutive_stones.first().copied() {
         if (4..=5).contains(&n) {
-            return 0.001f32;
+            return 1f32;
         }
     }
 

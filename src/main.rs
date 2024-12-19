@@ -9,9 +9,9 @@ const AGENT_PATH: &str = "agents/test";
 fn main() {
     let mut agent = GomokuDDQNProvider.create_agent();
 
-    if std::fs::exists(format!("{AGENT_PATH}/agent.safetensors")).unwrap() {
-        agent.load(AGENT_PATH).unwrap();
-    }
+    // if std::fs::exists(format!("{AGENT_PATH}/agent.safetensors")).unwrap() {
+    //     agent.load(AGENT_PATH).unwrap();
+    // }
 
     let config = Figment::new().merge(Toml::file(format!("{AGENT_PATH}/config.toml")));
     agent.train(1000000, config).unwrap();

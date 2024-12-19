@@ -74,6 +74,7 @@ impl GomokuDDQNTrainer {
         };
         let mut epsilon = train_options.epsilon;
         let mut replay_buffer = VecDeque::with_capacity(train_options.replay_buffer_size);
+        let mut loss_visualizer = loss_visualizer::LossVisualizer::new();
 
         for epoch in 0..epoches {
             println!("epoches: {}", epoch + 1);
@@ -81,8 +82,6 @@ impl GomokuDDQNTrainer {
             let mut iteration = 0;
 
             while iteration < train_options.iterations {
-                println!("iteration: {}", iteration + 1);
-
                 let (new_game, new_agent_turn, replay_step) =
                     sample_replay(game, agent_turn, agent, Opponent::Random, epsilon);
 
@@ -127,14 +126,22 @@ impl GomokuDDQNTrainer {
 
                 target.copy_weights_from(agent.model(), Some(train_options.tau));
 
-                println!("loss: {}", loss.double_value(&[]));
+                loss_visualizer.add(loss.double_value(&[]));
             }
+
+            println!("loss: {}", loss_visualizer.mean());
 
             if let Some(save_path) = &train_options.save_path {
                 if let Err(err) = agent.save(save_path) {
                     eprintln!("failed to save agent: {:#?}", err);
                 }
             }
+
+            let (agent_wins, opponent_wins, draws) = eval::evaluate_many(agent, 10);
+            println!(
+                "agent wins: {}, opponent wins: {}, draws: {}",
+                agent_wins, opponent_wins, draws
+            );
         }
 
         Ok(())
@@ -197,5 +204,90 @@ mod loss {
         let is_done = Tensor::from_slice(&is_done).view([-1, 1]);
 
         r + (1.0 - is_done) * gamma * target_q
+    }
+}
+
+mod loss_visualizer {
+    pub struct LossVisualizer {
+        losses: Vec<f64>,
+    }
+
+    impl LossVisualizer {
+        pub fn new() -> Self {
+            Self { losses: vec![] }
+        }
+
+        pub fn add(&mut self, loss: f64) {
+            if 100 <= self.losses.len() {
+                self.losses.swap_remove(0);
+            }
+
+            self.losses.push(loss);
+        }
+
+        pub fn mean(&self) -> f64 {
+            if self.losses.is_empty() {
+                return 0.0;
+            }
+
+            self.losses.iter().sum::<f64>() / self.losses.len() as f64
+        }
+    }
+}
+
+mod eval {
+    use crate::{agent::Agent, agents::gomoku_ddqn::agent::GomokuDDQNAgent};
+    use gomoku_core::game::{Game, GameResult, Turn};
+    use rand::{seq::SliceRandom, Rng};
+
+    pub fn evaluate_many(agent: &mut GomokuDDQNAgent, n: usize) -> (usize, usize, usize) {
+        let mut agent_wins = 0;
+        let mut opponent_wins = 0;
+        let mut draws = 0;
+
+        for _ in 0..n {
+            let (agent_turn, game_result) = evaluate(agent);
+
+            match game_result {
+                GameResult::Win(winner) => {
+                    if winner == agent_turn {
+                        agent_wins += 1;
+                    } else {
+                        opponent_wins += 1;
+                    }
+                }
+                GameResult::Draw => {
+                    draws += 1;
+                }
+            }
+        }
+
+        (agent_wins, opponent_wins, draws)
+    }
+
+    fn evaluate(agent: &mut GomokuDDQNAgent) -> (Turn, GameResult) {
+        let mut rng = rand::thread_rng();
+        let mut game = Game::new(15, 5);
+        let agent_turn = if rng.gen_bool(0.5) {
+            Turn::Black
+        } else {
+            Turn::White
+        };
+
+        while game.game_result().is_none() {
+            let action = if game.turn() == agent_turn {
+                agent.next_move(&game).unwrap()
+            } else {
+                *game.board().legal_moves().choose(&mut rng).unwrap()
+            };
+
+            let result = game.place_stone(action).unwrap();
+
+            if let Some(game_result) = result.game_result {
+                return (agent_turn, game_result);
+            }
+        }
+
+        (agent_turn, GameResult::Draw)
     }
 }
