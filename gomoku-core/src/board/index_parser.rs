@@ -2,7 +2,7 @@ use std::{iter::Peekable, str::Chars};
 
 #[derive(Debug, Clone)]
 pub struct IndexParser<'a> {
-    size: usize,
+    board_size: usize,
     chars: Peekable<Chars<'a>>,
 }
 
@@ -13,19 +13,19 @@ pub struct Index {
 }
 
 impl Index {
-    pub fn is_valid(self, size: usize) -> bool {
-        self.row < size && self.column < size
+    pub fn is_valid(self, board_size: usize) -> bool {
+        self.row < board_size && self.column < board_size
     }
 
-    pub fn to_index(self, size: usize) -> usize {
-        self.row * size + self.column
+    pub fn to_index(self, board_size: usize) -> usize {
+        self.row * board_size + self.column
     }
 }
 
 impl<'a> IndexParser<'a> {
-    pub fn new(size: usize, index: &'a str) -> Self {
+    pub fn new(board_size: usize, index: &'a str) -> Self {
         Self {
-            size,
+            board_size,
             chars: index.chars().peekable(),
         }
     }
@@ -74,7 +74,7 @@ impl<'a> IndexParser<'a> {
             column: alpha_index,
         };
 
-        if index.is_valid(self.size) {
+        if index.is_valid(self.board_size) {
             return Some(index);
         }
 
@@ -95,7 +95,7 @@ impl<'a> IndexParser<'a> {
             column: alpha_index,
         };
 
-        if index.is_valid(self.size) {
+        if index.is_valid(self.board_size) {
             return Some(index);
         }
 
@@ -120,7 +120,7 @@ impl<'a> IndexParser<'a> {
             column: number_index,
         };
 
-        if index.is_valid(self.size) {
+        if index.is_valid(self.board_size) {
             return Some(index);
         }
 
@@ -135,11 +135,11 @@ impl<'a> IndexParser<'a> {
         }
 
         let number_index = number_to_index(number.as_str()) - 1; // 1-indexed to 0-indexed
-        let row = number_index / self.size;
-        let column = number_index % self.size;
+        let row = number_index / self.board_size;
+        let column = number_index % self.board_size;
         let index = Index { row, column };
 
-        if index.is_valid(self.size) {
+        if index.is_valid(self.board_size) {
             return Some(index);
         }
 

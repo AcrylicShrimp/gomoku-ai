@@ -1,0 +1,7 @@
+{
+  "rust-analyzer.cargo.extraEnv": {
+    "LIBTORCH": "/opt/homebrew/Cellar/pytorch/2.5.1_2",
+    "LIBTORCH_LIB": "/opt/homebrew/Cellar/pytorch/2.5.1_2",
+    "LIBTORCH_INCLUDE": "/opt/homebrew/Cellar/pytorch/2.5.1_2"
+  }
+}

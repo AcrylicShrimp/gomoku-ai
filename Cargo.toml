@@ -4,10 +4,18 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["gomoku-cli-pvp", "gomoku-core"]
+members = ["gomoku-agent", "gomoku-cli-pvp", "gomoku-core"]
 
 [workspace.dependencies]
-thiserror = "2"
+figment = { version = "0.10", features = ["toml"] }
+gomoku-agent = { path = "gomoku-agent" }
 gomoku-core = { path = "gomoku-core" }
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+tch = "0.18"
+thiserror = "2"
 
 [dependencies]
+figment = { workspace = true }
+gomoku-agent = { workspace = true }
+gomoku-core = { workspace = true }

@@ -48,28 +48,30 @@ pub enum GameResult {
 
 #[derive(Debug, Clone)]
 pub struct Game {
-    size: usize,
+    board_size: usize,
     max_consecutive_stones: usize,
     turn: Turn,
     turn_count: usize,
+    history: Vec<(Turn, Board)>,
     game_result: Option<GameResult>,
     board: Board,
 }
 
 impl Game {
-    pub fn new(size: usize, max_consecutive_stones: usize) -> Self {
+    pub fn new(board_size: usize, max_consecutive_stones: usize) -> Self {
         Self {
-            size,
+            board_size,
             max_consecutive_stones,
             turn: Turn::Black,
             turn_count: 0,
+            history: vec![(Turn::Black, Board::new(board_size))],
             game_result: None,
-            board: Board::new(size),
+            board: Board::new(board_size),
         }
     }
 
-    pub fn size(&self) -> usize {
-        self.size
+    pub fn board_size(&self) -> usize {
+        self.board_size
     }
 
     pub fn max_consecutive_stones(&self) -> usize {
@@ -82,6 +84,10 @@ impl Game {
 
     pub fn turn_count(&self) -> usize {
         self.turn_count
+    }
+
+    pub fn history(&self) -> &[(Turn, Board)] {
+        &self.history
     }
 
     pub fn game_result(&self) -> Option<GameResult> {
@@ -97,6 +103,7 @@ pub struct PlaceStoneResult {
     pub index: usize,
     pub stone: Cell,
     pub turn_was: Turn,
+    pub board_was: Board,
     /// The number of consecutive stones placed by the current player.
     pub consecutive_stones: Vec<usize>,
     pub game_result: Option<GameResult>,
@@ -115,7 +122,7 @@ pub enum PlaceStoneError {
 
 impl Game {
     pub fn place_stone(&mut self, index: usize) -> Result<PlaceStoneResult, PlaceStoneError> {
-        let max_allowed_index = self.board.size() * self.board.size();
+        let max_allowed_index = self.board.board_size() * self.board.board_size();
         let cell = match self.board.get_cell(index) {
             Some(cell) => cell,
             None => {
@@ -130,6 +137,7 @@ impl Game {
             return Err(PlaceStoneError::StoneAlreadyPlaced { index, stone: cell });
         }
 
+        let board_was = self.board.clone();
         self.board.set_cell(index, self.turn.into());
 
         let consecutive_stones = self.board.count_consecutive_cells(index, self.turn);
@@ -146,10 +154,13 @@ impl Game {
             self.game_result = Some(GameResult::Draw);
         }
 
+        self.history.push((self.turn, self.board.clone()));
+
         Ok(PlaceStoneResult {
             index,
             stone: self.turn.into(),
             turn_was,
+            board_was,
             consecutive_stones,
             game_result: self.game_result,
         })

@@ -43,18 +43,38 @@ impl Cell {
 
 #[derive(Debug, Clone)]
 pub struct Board {
-    size: usize,
+    board_size: usize,
     cells: Vec<Cell>,
 }
 
 impl Board {
-    pub fn new(size: usize) -> Self {
-        let cells = vec![Cell::Empty; size * size];
-        Self { size, cells }
+    pub fn new(board_size: usize) -> Self {
+        let cells = vec![Cell::Empty; board_size * board_size];
+        Self { board_size, cells }
     }
 
-    pub fn size(&self) -> usize {
-        self.size
+    pub fn board_size(&self) -> usize {
+        self.board_size
+    }
+
+    pub fn cells(&self) -> &[Cell] {
+        &self.cells
+    }
+
+    pub fn legal_moves(&self) -> Vec<usize> {
+        self.cells
+            .iter()
+            .enumerate()
+            .filter_map(|(index, cell)| if cell.is_empty() { Some(index) } else { None })
+            .collect()
+    }
+
+    pub fn illegal_moves(&self) -> Vec<usize> {
+        self.cells
+            .iter()
+            .enumerate()
+            .filter_map(|(index, cell)| if cell.is_empty() { None } else { Some(index) })
+            .collect()
     }
 
     pub fn get_cell(&self, index: usize) -> Option<Cell> {
@@ -74,9 +94,9 @@ impl Board {
     /// - 15 O
     /// - 3 15
     pub fn parse_index(&self, index: &str) -> Option<usize> {
-        let mut parser = IndexParser::new(self.size, index);
+        let mut parser = IndexParser::new(self.board_size, index);
         let index = parser.parse()?;
-        Some(index.to_index(self.size))
+        Some(index.to_index(self.board_size))
     }
 
     /// Converts a board index to a position string.
@@ -91,12 +111,12 @@ impl Board {
     /// - 16 -> B1
     /// - 25 -> Z1
     pub fn index_to_position(&self, index: usize) -> Option<String> {
-        if self.size * self.size <= index {
+        if self.board_size * self.board_size <= index {
             return None;
         }
 
-        let mut x = index % self.size;
-        let y = index / self.size;
+        let mut x = index % self.board_size;
+        let y = index / self.board_size;
 
         let mut alpha = String::new();
 
@@ -129,28 +149,28 @@ impl Display for Board {
     /// 2 . X .
     /// 3 . . O
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut result = String::with_capacity(self.size * (self.size + 1) * 2);
+        let mut result = String::with_capacity(self.board_size * (self.board_size + 1) * 2);
 
         // Add column headers (A, B, C, ...)
         result.push_str("   "); // Initial spacing for row numbers
-        for x in 0..self.size {
+        for x in 0..self.board_size {
             result.push((b'A' + x as u8) as char);
             result.push(' ');
         }
         result.push('\n');
 
         // Add rows with numbers and cells
-        for y in 0..self.size {
+        for y in 0..self.board_size {
             // Add row number
             result.push_str(&format!("{:2} ", y + 1));
 
             // Add cells
-            for x in 0..self.size {
-                let cell = self.cells[y * self.size + x];
+            for x in 0..self.board_size {
+                let cell = self.cells[y * self.board_size + x];
                 result.push(cell.symbol());
                 result.push(' '); // Add space between cells
             }
-            if y < self.size - 1 {
+            if y < self.board_size - 1 {
                 result.push('\n');
             }
         }
@@ -180,8 +200,8 @@ impl Board {
             return vec![];
         }
 
-        let x = (index % self.size) as isize;
-        let y = (index / self.size) as isize;
+        let x = (index % self.board_size) as isize;
+        let y = (index / self.board_size) as isize;
 
         let mut results = vec![
             // case 1: horizontal
@@ -223,8 +243,8 @@ impl Board {
         let mut x = x;
         let mut y = y;
 
-        while x >= 0 && x < self.size as isize && y >= 0 && y < self.size as isize {
-            let index = (y * self.size as isize + x) as usize;
+        while x >= 0 && x < self.board_size as isize && y >= 0 && y < self.board_size as isize {
+            let index = (y * self.board_size as isize + x) as usize;
 
             if self.cells[index] != cell {
                 return count;
