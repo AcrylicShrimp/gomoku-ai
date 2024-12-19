@@ -142,6 +142,15 @@ impl GomokuDDQNTrainer {
                 "agent wins: {}, opponent wins: {}, draws: {}",
                 agent_wins, opponent_wins, draws
             );
+
+            if epoch % 10 == 0 {
+                let (agent_turn, recent_game, _) = eval::evaluate(agent);
+                println!(
+                    "recent game [agent={}]:\n{}",
+                    agent_turn.name(),
+                    recent_game
+                );
+            }
         }
 
         Ok(())
@@ -190,9 +199,33 @@ mod loss {
                 .iter()
                 .map(|step| step.next_boards.as_ref().unwrap_or(&step.boards)),
         ));
-        let actions = agent.forward_t(&next_boards, false).argmax(1, true);
-        let target_qs = target.forward_t(&next_boards, false);
-        let target_q = target_qs.gather(1, &actions, false).to_device(Device::Cpu);
+        let action_values = agent.forward_t(&next_boards, false).to_device(Device::Cpu);
+        let action_values: Vec<f64> = action_values.flatten(0, -1).try_into().unwrap();
+
+        let mut legal_actions = Vec::with_capacity(batch.len());
+
+        // apply argmax only to legal moves
+        for (i, step) in batch.iter().enumerate() {
+            let board = &step.boards.last().unwrap().1;
+            let action_values = &action_values[i * board.board_size() * board.board_size()
+                ..(i + 1) * board.board_size() * board.board_size()];
+            let pairs = Vec::from_iter(
+                board
+                    .legal_moves()
+                    .into_iter()
+                    .map(|action| (action, action_values[action])),
+            );
+            let best_action = pairs
+                .iter()
+                .max_by(|(_, lhs), (_, rhs)| f64::total_cmp(lhs, rhs))
+                .unwrap()
+                .0;
+            legal_actions.push(best_action as i64);
+        }
+
+        let actions = Tensor::from_slice(&legal_actions).view([-1, 1]);
+        let target_qs = target.forward_t(&next_boards, false).to_device(Device::Cpu);
+        let target_q = target_qs.gather(1, &actions, false);
 
         // flag for whether the game is done to mask out the future q values
         let is_done =
@@ -246,7 +279,7 @@ mod eval {
         let mut draws = 0;
 
         for _ in 0..n {
-            let (agent_turn, game_result) = evaluate(agent);
+            let (agent_turn, _, game_result) = evaluate(agent);
 
             match game_result {
                 GameResult::Win(winner) => {
@@ -265,7 +298,7 @@ mod eval {
         (agent_wins, opponent_wins, draws)
     }
 
-    fn evaluate(agent: &mut GomokuDDQNAgent) -> (Turn, GameResult) {
+    pub fn evaluate(agent: &mut GomokuDDQNAgent) -> (Turn, Game, GameResult) {
         let mut rng = rand::thread_rng();
         let mut game = Game::new(15, 5);
         let agent_turn = if rng.gen_bool(0.5) {
@@ -284,10 +317,10 @@ mod eval {
             let result = game.place_stone(action).unwrap();
 
             if let Some(game_result) = result.game_result {
-                return (agent_turn, game_result);
+                return (agent_turn, game, game_result);
             }
         }
 
-        (agent_turn, GameResult::Draw)
+        (agent_turn, game, GameResult::Draw)
     }
 }
