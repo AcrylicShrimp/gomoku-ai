@@ -1,0 +1,120 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'gomoku_agent'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=gomoku-agent"
+                ],
+                "filter": {
+                    "name": "gomoku_agent",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'gomoku_core'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=gomoku-core"
+                ],
+                "filter": {
+                    "name": "gomoku_core",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'gomoku-cli-pvp'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=gomoku-cli-pvp",
+                    "--package=gomoku-cli-pvp"
+                ],
+                "filter": {
+                    "name": "gomoku-cli-pvp",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'gomoku-cli-pvp'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=gomoku-cli-pvp",
+                    "--package=gomoku-cli-pvp"
+                ],
+                "filter": {
+                    "name": "gomoku-cli-pvp",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'gomoku-ai'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=gomoku-ai",
+                    "--package=gomoku-ai"
+                ],
+                "filter": {
+                    "name": "gomoku-ai",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'gomoku-ai'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=gomoku-ai",
+                    "--package=gomoku-ai"
+                ],
+                "filter": {
+                    "name": "gomoku-ai",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
