@@ -76,7 +76,7 @@ pub fn sample_replay(
                 boards,
                 next_boards: None,
                 game_result: result_after_agent.game_result,
-                reward: 100f32,
+                reward: 10f32,
             },
         );
     }
@@ -99,7 +99,7 @@ pub fn sample_replay(
                 boards,
                 next_boards: None,
                 game_result: result_after_opponent.game_result,
-                reward: -100f32,
+                reward: -10f32,
             },
         );
     }
@@ -176,7 +176,7 @@ fn compute_nonterminal_reward(result: &PlaceStoneResult) -> f32 {
     // +1 for 3-5 consecutive stones (offensive)
     if let Some(n) = result.consecutive_stones.first().copied() {
         if (3..=5).contains(&n) {
-            return 1f32;
+            return 0.01f32;
         }
     }
 
@@ -188,7 +188,7 @@ fn compute_nonterminal_reward(result: &PlaceStoneResult) -> f32 {
         virtual_board.count_consecutive_cells(result.index, result.turn_was.next());
     if let Some(n) = opponent_consecutive_stones.first().copied() {
         if (4..=5).contains(&n) {
-            return 1f32;
+            return 0.01f32;
         }
     }
 
